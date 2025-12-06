@@ -63,8 +63,8 @@ spec:
                   key: postgres-password
             - name: DB_NAME
               value: "{{ .Values.backend.config.database.name }}"
-            - name: DB_SSLMODE
-              value: "disable"
+            - name: PGSSLMODE
+              value: "require"
             - name: REDIS_ADDRESS
               value: "{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}"
             - name: REDIS_USER

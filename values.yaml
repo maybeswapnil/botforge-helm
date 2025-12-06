@@ -89,6 +89,9 @@ postgres:
   persistence:
     size: 10Gi
     storageClass: ""
+  ssl:
+    serverCert: "placeholder"
+    serverKey: "placeholder"
 
 mongo:
   enabled: true

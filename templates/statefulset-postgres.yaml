@@ -44,10 +44,25 @@ spec:
             - name: initdb
               mountPath: /docker-entrypoint-initdb.d/create.sql
               subPath: create.sql
+            - name: ssl-certs
+              mountPath: /var/lib/postgresql/ssl
+              readOnly: true
+          command:
+            - postgres
+            - -c
+            - ssl=on
+            - -c
+            - ssl_cert_file=/var/lib/postgresql/ssl/server.crt
+            - -c
+            - ssl_key_file=/var/lib/postgresql/ssl/server.key
       volumes:
         - name: initdb
           configMap:
             name: {{ include "botforge.fullname" . }}-initdb
+        - name: ssl-certs
+          secret:
+            secretName: {{ include "botforge.fullname" . }}-postgres-ssl
+            defaultMode: 0600
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
