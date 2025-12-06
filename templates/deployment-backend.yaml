@@ -29,23 +29,74 @@ spec:
           env:
             - name: SERVER_PORT
               value: "{{ .Values.backend.service.port }}"
+            {{- if .Values.mongo.enabled }}
+            - name: MONGODB_URI
+              value: "mongodb://{{ .Values.mongo.env.MONGO_INITDB_ROOT_USERNAME }}:{{ .Values.mongo.env.MONGO_INITDB_ROOT_PASSWORD }}@{{ include "botforge.fullname" . }}-mongo:{{ .Values.mongo.service.port }}/botforge?authSource=admin"
+            {{- else }}
+            - name: MONGODB_URI
+              value: "{{ .Values.backend.config.mongodbUri }}"
+            {{- end }}
+            - name: GOOGLE_CLIENT_ID
+              value: "{{ .Values.backend.config.googleClientId }}"
+            - name: JWT_SECRET
+              value: "{{ .Values.backend.config.jwtSecret }}"
+            - name: UPLOADS_DIRECTORY
+              value: "{{ .Values.backend.config.UploadsDirectory }}"
+            - name: MAX_FILE_SIZE
+              value: "{{ .Values.backend.config.MaxFileSize }}"
+            - name: FIREBASE_API_KEY
+              value: "{{ .Values.backend.config.firebase.apiKey }}"
+            - name: FIREBASE_AUTH_DOMAIN
+              value: "{{ .Values.backend.config.firebase.authDomain }}"
+            - name: FIREBASE_PROJECT_ID
+              value: "{{ .Values.backend.config.firebase.projectId }}"
+            - name: DB_HOST
+              value: "{{ include "botforge.fullname" . }}-postgres"
+            - name: DB_PORT
+              value: "{{ .Values.backend.config.database.port }}"
+            - name: DB_USER
+              value: "{{ .Values.backend.config.database.user }}"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "botforge.fullname" . }}-secrets
+                  key: postgres-password
+            - name: DB_NAME
+              value: "{{ .Values.backend.config.database.name }}"
+            - name: REDIS_ADDRESS
+              value: "{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}"
+            - name: REDIS_USER
+              value: "{{ .Values.backend.config.redis.user }}"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "botforge.fullname" . }}-secrets
+                  key: redis-password
+            - name: REDIS_DB
+              value: "{{ .Values.backend.config.redis.db }}"
+            - name: PUBLIC_KEY_PATH
+              value: "{{ .Values.backend.config.publicKeyPath }}"
+            - name: PRIVATE_KEY_PATH
+              value: "{{ .Values.backend.config.privateKeyPath }}"
+            - name: RAG_BACKEND_URL
+              value: "http://{{ include "botforge.fullname" . }}-rag:{{ .Values.rag.service.port }}"
+            - name: WEBSITE_FILENAME
+              value: "{{ .Values.backend.config.websiteFilename }}"
+            - name: UPSTASH_URL
+              value: "{{ .Values.backend.config.upstashURL }}"
+            - name: UPSTASH_TOKEN
+              value: "{{ .Values.backend.config.upstashToken }}"
             {{- range $key, $val := .Values.backend.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
             {{- end }}
           volumeMounts:
-            - name: config-volume
-              mountPath: /app/app/config/config.json
-              subPath: config.json
             - name: keys-volume
               mountPath: /app/keys
               readOnly: true
             - name: uploads-volume
               mountPath: /app/uploads
       volumes:
-        - name: config-volume
-          secret:
-            secretName: {{ include "botforge.fullname" . }}-backend-config
         - name: keys-volume
           secret:
             secretName: {{ include "botforge.fullname" . }}-keys
