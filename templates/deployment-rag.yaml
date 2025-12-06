@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "botforge.fullname" . }}-rag
+  labels:
+    {{- include "botforge.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "botforge.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: rag
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "botforge.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        component: rag
+    spec:
+      containers:
+        - name: rag
+          image: "{{ .Values.rag.image.repository }}:{{ .Values.rag.image.tag }}"
+          imagePullPolicy: {{ .Values.rag.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.rag.service.port }}
+              protocol: TCP
+          env:
+            - name: ENVIRONMENT
+              value: "{{ .Values.rag.env.ENVIRONMENT }}"
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.postgres.env.POSTGRES_USER }}:{{ .Values.postgres.env.POSTGRES_PASSWORD }}@{{ include "botforge.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.env.POSTGRES_DB }}"
+            - name: REDIS_URL
+              value: "redis://{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}/0"
+            - name: OPENAI_API_KEY
+              value: "{{ .Values.rag.env.OPENAI_API_KEY }}"

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "botforge.fullname" . }}-redis
+  labels:
+    {{- include "botforge.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "botforge.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "botforge.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        component: redis
+    spec:
+      containers:
+        - name: redis
+          image: "{{ .Values.redis.image }}"
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.service.port }}
+              protocol: TCP
+          command: ["redis-server", "--appendonly", "yes"]
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}

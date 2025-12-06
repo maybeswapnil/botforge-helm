@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "botforge.fullname" . }}-rag
+  labels:
+    {{- include "botforge.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.rag.service.type }}
+  ports:
+    - port: {{ .Values.rag.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "botforge.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: rag

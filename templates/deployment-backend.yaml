@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "botforge.fullname" . }}-backend
+  labels:
+    {{- include "botforge.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "botforge.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "botforge.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+              protocol: TCP
+          env:
+            - name: SERVER_PORT
+              value: "{{ .Values.backend.service.port }}"
+            - name: GO_ENV
+              value: "production"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/app/config/config.json
+              subPath: config.json
+            - name: keys-volume
+              mountPath: /app/keys
+              readOnly: true
+            - name: uploads-volume
+              mountPath: /app/uploads
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "botforge.fullname" . }}-backend-config
+        - name: keys-volume
+          secret:
+            secretName: {{ include "botforge.fullname" . }}-keys
+            optional: true
+        - name: uploads-volume
+          emptyDir: {}

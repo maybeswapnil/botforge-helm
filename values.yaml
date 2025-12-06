@@ -1,0 +1,66 @@
+namespace: botforge
+
+backend:
+  image:
+    repository: botforge-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30080
+  config:
+    mongodbUri: "mongodb+srv://placeholder"
+    googleClientId: "placeholder"
+    jwtSecret: "secret"
+    UploadsDirectory: "/app/uploads"
+    MaxFileSize: 10485760
+    firebase:
+      apiKey: "placeholder"
+      authDomain: "placeholder"
+      projectId: "placeholder"
+    database:
+      host: "botforge-postgres"
+      port: "5432"
+      user: "postgres"
+      password: "password"
+      name: "botforge"
+    redis:
+      address: "botforge-redis:6379"
+      user: ""
+      password: ""
+      db: "0"
+    publicKeyPath: "/app/keys/public.pem"
+    privateKeyPath: "/app/keys/private.pem"
+    ragBackendURL: "http://botforge-rag:8000"
+    websiteFilename: "website.txt"
+    upstashURL: "placeholder"
+    upstashToken: "placeholder"
+
+rag:
+  image:
+    repository: botforge-rag
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    ENVIRONMENT: "production"
+    DATABASE_URL: "postgresql://postgres:password@botforge-postgres:5432/botforge"
+    REDIS_URL: "redis://botforge-redis:6379/0"
+    OPENAI_API_KEY: "placeholder"
+
+redis:
+  image: redis:7-alpine
+  service:
+    port: 6379
+
+postgres:
+  image: postgres:15-alpine
+  service:
+    port: 5432
+  env:
+    POSTGRES_DB: botforge
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
