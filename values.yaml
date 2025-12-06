@@ -12,7 +12,7 @@ backend:
   env:
     GO_ENV: "production"
   config:
-    mongodbUri: "mongodb+srv://placeholder"
+    mongodbUri: "mongodb://root:placeholder@botforge-mongo:27017/botforge?authSource=admin"
     googleClientId: "placeholder"
     jwtSecret: "placeholder"
     UploadsDirectory: "/app/uploads"
