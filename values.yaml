@@ -2,7 +2,7 @@ namespace: botforge
 
 backend:
   image:
-    repository: botforge-backend
+    repository: hellochemo/botforge-backend
     tag: latest
     pullPolicy: IfNotPresent
   service:
@@ -41,7 +41,7 @@ backend:
 
 rag:
   image:
-    repository: botforge-rag
+    repository: hellochemo/botforge-rag
     tag: latest
     pullPolicy: IfNotPresent
   service:
