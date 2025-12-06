@@ -27,6 +27,7 @@ spec:
             - -c
             - |
               cp /ssl-source/* /ssl-target/
+              chown 999:999 /ssl-target/*
               chmod 600 /ssl-target/server.key
               chmod 644 /ssl-target/server.crt
           volumeMounts:
@@ -41,6 +42,10 @@ spec:
             - name: postgres
               containerPort: {{ .Values.postgres.service.port }}
               protocol: TCP
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
