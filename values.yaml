@@ -38,6 +38,9 @@ backend:
     websiteFilename: "website.txt"
     upstashURL: "https://decent-hawk-84124-us1-vector.upstash.io"
     upstashToken: "placeholder"
+  keys:
+    publicKey: "placeholder"
+    privateKey: "placeholder"
 
 rag:
   image:

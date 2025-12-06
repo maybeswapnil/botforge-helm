@@ -100,6 +100,5 @@ spec:
         - name: keys-volume
           secret:
             secretName: {{ include "botforge.fullname" . }}-keys
-            optional: true
         - name: uploads-volume
           emptyDir: {}
