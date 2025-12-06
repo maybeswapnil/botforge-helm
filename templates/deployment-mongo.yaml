@@ -1,7 +1,8 @@
+{{- if .Values.mongo.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "botforge.fullname" . }}-redis
+  name: {{ include "botforge.fullname" . }}-mongo
   labels:
     {{- include "botforge.labels" . | nindent 4 }}
 spec:
@@ -10,31 +11,33 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "botforge.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-      component: redis
+      component: mongo
   template:
     metadata:
       labels:
         app.kubernetes.io/name: {{ include "botforge.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-        component: redis
+        component: mongo
     spec:
       containers:
-        - name: redis
-          image: "{{ .Values.redis.image }}"
+        - name: mongo
+          image: "{{ .Values.mongo.image }}"
           ports:
-            - name: redis
-              containerPort: {{ .Values.redis.service.port }}
+            - name: mongo
+              containerPort: {{ .Values.mongo.service.port }}
               protocol: TCP
           env:
-            - name: REDIS_PASSWORD
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "{{ .Values.mongo.env.MONGO_INITDB_ROOT_USERNAME }}"
+            - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "botforge.fullname" . }}-secrets
-                  key: redis-password
-          command: ["sh", "-c", "redis-server --appendonly yes --requirepass $REDIS_PASSWORD"]
+                  key: mongo-password
           volumeMounts:
-            - name: redis-data
-              mountPath: /data
+            - name: mongo-data
+              mountPath: /data/db
       volumes:
-        - name: redis-data
+        - name: mongo-data
           emptyDir: {}
+{{- end }}

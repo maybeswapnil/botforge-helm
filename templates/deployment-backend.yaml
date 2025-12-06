@@ -29,8 +29,10 @@ spec:
           env:
             - name: SERVER_PORT
               value: "{{ .Values.backend.service.port }}"
-            - name: GO_ENV
-              value: "production"
+            {{- range $key, $val := .Values.backend.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
           volumeMounts:
             - name: config-volume
               mountPath: /app/app/config/config.json
@@ -42,8 +44,8 @@ spec:
               mountPath: /app/uploads
       volumes:
         - name: config-volume
-          configMap:
-            name: {{ include "botforge.fullname" . }}-backend-config
+          secret:
+            secretName: {{ include "botforge.fullname" . }}-backend-config
         - name: keys-volume
           secret:
             secretName: {{ include "botforge.fullname" . }}-keys

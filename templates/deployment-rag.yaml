@@ -27,11 +27,21 @@ spec:
               containerPort: {{ .Values.rag.service.port }}
               protocol: TCP
           env:
-            - name: ENVIRONMENT
-              value: "{{ .Values.rag.env.ENVIRONMENT }}"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "botforge.fullname" . }}-secrets
+                  key: postgres-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "botforge.fullname" . }}-secrets
+                  key: redis-password
             - name: DATABASE_URL
-              value: "postgresql://{{ .Values.postgres.env.POSTGRES_USER }}:{{ .Values.postgres.env.POSTGRES_PASSWORD }}@{{ include "botforge.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.env.POSTGRES_DB }}"
+              value: "postgresql://{{ .Values.postgres.env.POSTGRES_USER }}:$(POSTGRES_PASSWORD)@{{ include "botforge.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.env.POSTGRES_DB }}"
             - name: REDIS_URL
-              value: "redis://{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}/0"
-            - name: OPENAI_API_KEY
-              value: "{{ .Values.rag.env.OPENAI_API_KEY }}"
+              value: "redis://:$(REDIS_PASSWORD)@{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}/0"
+            {{- range $key, $val := .Values.rag.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}

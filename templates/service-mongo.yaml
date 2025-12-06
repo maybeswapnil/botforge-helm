@@ -1,0 +1,19 @@
+{{- if .Values.mongo.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "botforge.fullname" . }}-mongo
+  labels:
+    {{- include "botforge.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.mongo.service.port }}
+      targetPort: mongo
+      protocol: TCP
+      name: mongo
+  selector:
+    app.kubernetes.io/name: {{ include "botforge.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: mongo
+{{- end }}
