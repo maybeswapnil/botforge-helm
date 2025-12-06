@@ -74,6 +74,9 @@ redis:
   service:
     port: 6379
   password: "placeholder"
+  persistence:
+    size: 8Gi
+    storageClass: ""
 
 postgres:
   image: postgres:15-alpine
@@ -83,6 +86,9 @@ postgres:
     POSTGRES_DB: botforge
     POSTGRES_USER: avnadmin
     POSTGRES_PASSWORD: "placeholder"
+  persistence:
+    size: 10Gi
+    storageClass: ""
 
 mongo:
   enabled: true
@@ -92,3 +98,6 @@ mongo:
   env:
     MONGO_INITDB_ROOT_USERNAME: root
     MONGO_INITDB_ROOT_PASSWORD: "placeholder"
+  persistence:
+    size: 10Gi
+    storageClass: ""

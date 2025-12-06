@@ -1,11 +1,12 @@
 {{- if .Values.mongo.enabled }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "botforge.fullname" . }}-mongo
   labels:
     {{- include "botforge.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "botforge.fullname" . }}-mongo
   replicas: 1
   selector:
     matchLabels:
@@ -34,7 +35,15 @@ spec:
           volumeMounts:
             - name: mongo-data
               mountPath: /data/db
-      volumes:
-        - name: mongo-data
-          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if .Values.mongo.persistence.storageClass }}
+        storageClassName: {{ .Values.mongo.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mongo.persistence.size }}
 {{- end }}

@@ -1,10 +1,11 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "botforge.fullname" . }}-redis
   labels:
     {{- include "botforge.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "botforge.fullname" . }}-redis
   replicas: 1
   selector:
     matchLabels:
@@ -35,6 +36,14 @@ spec:
           volumeMounts:
             - name: redis-data
               mountPath: /data
-      volumes:
-        - name: redis-data
-          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if .Values.redis.persistence.storageClass }}
+        storageClassName: {{ .Values.redis.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.persistence.size }}
