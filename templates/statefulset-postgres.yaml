@@ -19,28 +19,6 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         component: postgres
     spec:
-      securityContext:
-        fsGroup: 999
-        runAsUser: 999
-        runAsGroup: 999
-      initContainers:
-        - name: fix-ssl-permissions
-          image: busybox
-          securityContext:
-            runAsUser: 0
-          command:
-            - sh
-            - -c
-            - |
-              cp /ssl-source/* /ssl-target/
-              chown 999:999 /ssl-target/*
-              chmod 600 /ssl-target/server.key
-              chmod 644 /ssl-target/server.crt
-          volumeMounts:
-            - name: ssl-certs
-              mountPath: /ssl-source
-            - name: ssl-writable
-              mountPath: /ssl-target
       containers:
         - name: postgres
           image: "{{ .Values.postgres.image }}"
@@ -60,8 +38,6 @@ spec:
               value: "{{ .Values.postgres.env.POSTGRES_USER }}"
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
-            - name: POSTGRES_INITDB_ARGS
-              value: "--auth-host=scram-sha-256"
           args:
             - -c
             - ssl=on
@@ -75,8 +51,9 @@ spec:
             - name: initdb
               mountPath: /docker-entrypoint-initdb.d/create.sql
               subPath: create.sql
-            - name: ssl-writable
+            - name: ssl-certs
               mountPath: /var/lib/postgresql/ssl
+              readOnly: true
       volumes:
         - name: initdb
           configMap:
@@ -85,8 +62,6 @@ spec:
           secret:
             secretName: {{ include "botforge.fullname" . }}-postgres-ssl
             defaultMode: 0600
-        - name: ssl-writable
-          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
