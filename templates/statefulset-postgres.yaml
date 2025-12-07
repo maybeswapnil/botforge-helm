@@ -19,6 +19,23 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         component: postgres
     spec:
+      initContainers:
+        - name: fix-ssl-permissions
+          image: "{{ .Values.postgres.image }}"
+          command:
+            - sh
+            - -c
+            - |
+              cp /tmp/ssl-source/* /tmp/ssl-target/
+              chown 999:999 /tmp/ssl-target/*
+              chmod 600 /tmp/ssl-target/server.key
+              chmod 644 /tmp/ssl-target/server.crt
+          volumeMounts:
+            - name: ssl-certs-source
+              mountPath: /tmp/ssl-source
+              readOnly: true
+            - name: ssl-certs
+              mountPath: /tmp/ssl-target
       containers:
         - name: postgres
           image: "{{ .Values.postgres.image }}"
@@ -58,10 +75,12 @@ spec:
         - name: initdb
           configMap:
             name: {{ include "botforge.fullname" . }}-initdb
-        - name: ssl-certs
+        - name: ssl-certs-source
           secret:
             secretName: {{ include "botforge.fullname" . }}-postgres-ssl
             defaultMode: 0600
+        - name: ssl-certs
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
