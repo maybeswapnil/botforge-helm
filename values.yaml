@@ -90,8 +90,58 @@ postgres:
     size: 10Gi
     storageClass: ""
   ssl:
-    serverCert: "placeholder"
-    serverKey: "placeholder"
+    serverCert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDnTCCAoWgAwIBAgIUc29OP0DMc4GdXcoYVpE/aMhA28kwDQYJKoZIhvcNAQEL
+      BQAwXjELMAkGA1UEBhMCVVMxDzANBgNVBAgMBkRlbmlhbDEUMBIGA1UEBwwLU3By
+      aW5nZmllbGQxDDAKBgNVBAoMA0RpczEaMBgGA1UEAwwRYm90Zm9yZ2UtcG9zdGdy
+      ZXMwHhcNMjUxMjE2MDQ1MTUwWhcNMjYxMjE2MDQ1MTUwWjBeMQswCQYDVQQGEwJV
+      UzEPMA0GA1UECAwGRGVuaWFsMRQwEgYDVQQHDAtTcHJpbmdmaWVsZDEMMAoGA1UE
+      CgwDRGlzMRowGAYDVQQDDBFib3Rmb3JnZS1wb3N0Z3JlczCCASIwDQYJKoZIhvcN
+      AQEBBQADggEPADCCAQoCggEBAKb95fk/QpeGHTEa30iobh55J1lQsAGJkK2Xxmc/
+      ya7yAMl8CrldzUnjEzcsQCFlbJTTonkHOLuRx1TjE1qps/z7hYX+jivZosCoy7Lw
+      Sxtz6FVVZA4NLpVDS2ZvBye7NLBhjHn9Yod/R6UwsjhXFucE4b6hzglu/yukbQAU
+      OWcCsryKddPd4OryUP/qOo78em62PjLhczg7/4xRL9vuTqc/js40G4NKa6gwSY45
+      80n4nuBLtjJ1SYMTgQyeh85YtTSStIK/b/9pVieje9xh7abiVHFubFalck6ill1Z
+      tlFcUt4u9YMqSkEW788IcrlrhwNJBNpzgR+xhGF9dXcdXC8CAwEAAaNTMFEwHQYD
+      VR0OBBYEFL/XuMPa2iFwgq1SArBh3SRfkcygMB8GA1UdIwQYMBaAFL/XuMPa2iFw
+      gq1SArBh3SRfkcygMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEB
+      ACNB/YZBKnGsne2zmSVRGgLw+UVgZsxbCgZKZSIKcGFNfdUUIvOEUtwfCGr5HnCv
+      uOGYwFZ9tfoAiK+E4OKS9WQQTgV4xcrD5wqkxHZgCm2lHv0fUIcdXZF7QGY/UlcH
+      c0MDrNzE/OnQ2jm1uOuq9MA63zN+Ez0ypuyE8VD76Hu/l/iEwNP6Siyyvms3WGJE
+      WwoLs4b/6qbxBk2pDjwoTZ8xy0bU7EpAHE4YbohXlb7p1R7BJrd83mv8wICAAC4Z
+      DlGXEQ/ac+jSNcrCe32CdVfO5XMbOQcPP3ivjIg4zuHama2OO0Afb8xBktxfr6F6
+      Zw65IgPF1kf/fuuWnZwJD+U=
+      -----END CERTIFICATE-----
+    serverKey: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCm/eX5P0KXhh0x
+      Gt9IqG4eeSdZULABiZCtl8ZnP8mu8gDJfAq5Xc1J4xM3LEAhZWyU06J5Bzi7kcdU
+      4xNaqbP8+4WF/o4r2aLAqMuy8Esbc+hVVWQODS6VQ0tmbwcnuzSwYYx5/WKHf0el
+      MLI4VxbnBOG+oc4Jbv8rpG0AFDlnArK8inXT3eDq8lD/6jqO/Hputj4y4XM4O/+M
+      US/b7k6nP47ONBuDSmuoMEmOOfNJ+J7gS7YydUmDE4EMnofOWLU0krSCv2//aVYn
+      o3vcYe2m4lRxbmxWpXJOopZdWbZRXFLeLvWDKkpBFu/PCHK5a4cDSQTac4EfsYRh
+      fXV3HVwvAgMBAAECggEAQi/dEFK9+p+p/1YGzN4RM1vSuEhOUnWrVdqTxUWXkxMR
+      M8rJ11mx7cimS5Zq3rG7/Sr6uRyfJFzt1Bvihms/zxQEAq13vTKYGuNsRUKPilSA
+      8B2VuCoKXhfbkUCNZfaBti0byBghjtHoXDV2VfVSuwMI1I1+Q+fuFGap2z+o1sYr
+      f9sOYZZ1f4udJT6lFd9t5fDrPdgctnfLS62qofZXg161jiShG/o7GDYTSCst2ApA
+      rgt83tcQ7OJQkmyfTU4DBrdZJalc860AyY0EQJh4ZaNbrhkU0UMh/6x8si13p5Pa
+      JomK+4V9/NlCYp3OuAnTNjW0YEQA5ePT2ZEpyojJaQKBgQDWMIK0TA4H2A2EAPdh
+      w7RoK6aLWc0/52DmZp6Y//wxHg8DZv1pytDCDn/1qZ097uBOPrLhe0KEhXMzt+5S
+      MonAinKzGsbZ6B6OPlsrAY9H3awzxZa9mt3uzpgPj2zoRPj++AoyNMmrGhVaB9XG
+      vO3Y+5wwVNrTnjK9Z5Kgtw6syQKBgQDHltJK9VJ8Y2WVuRmqB6LXmoj7mSXqQHJM
+      PPY1lvFyCMuxzm2IRwVfXWQ6nwsAIwL7DvYPLganZ7o8sojrIHlujy+4qbx92yeX
+      qJLW9iohJoAiSHZsytQ/z1pY2g4yXxR7YYglHahFSX9vzmuKEgAAMcdEO8uMyCqW
+      92x7FBvVNwKBgQDUkzK1ZCIssMXBNABRXB0poeDZvpeRC79FC6Xt7WlLCi0WUFnD
+      bFHBtwhSNTNk6zZdEacRV/bNdXC/bJWvqI7Es+NgVHv0eoYQ4Fw1E4gzaBLnEvwn
+      U5Nd1lZeYxdQclu5GU1tRKy+DtYQE2ScqJdaWWVLJnxDuGddSXTh4qxC2QKBgQCV
+      Cz/G0iPi16cIg81yd3lXYANjPx5dK/sui2eg5TMwYPkbsneBCOguKuOqExJ3661S
+      Jf4Bn/FAGemtYfV1AC8uLKcKU1Z69ak/S5c8B1+2mbWd5FbrLxwI+qMRLuTjILV+
+      3Xp5nQgHlbcgmxkbZg2yF3oirjR20RNc4S+VSZLvSQKBgFkFVUGI9nVuvHUT2mFO
+      +Gk+ffYApHBMvyiv1+PIIrOtalgDcWdCXDKFTMCkc5Q4+s84h626tFTYp9EKilPC
+      M2ky/h6hD2ukIqjuVTE4Zyj8TjCfsUZDh6LUEQpvLolGa5TF3lSiG7PO1g92D42C
+      zhCCzy+DA6zk6vcB+2IqOARC
+      -----END PRIVATE KEY-----
 
 mongo:
   enabled: true
