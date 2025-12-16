@@ -27,7 +27,8 @@ spec:
             - -c
             - |
               cp /tmp/ssl-source/* /tmp/ssl-target/
-              chown 999:999 /tmp/ssl-target/*
+              chown -R postgres:postgres /tmp/ssl-target
+              chmod 750 /tmp/ssl-target
               chmod 600 /tmp/ssl-target/server.key
               chmod 644 /tmp/ssl-target/server.crt
           volumeMounts:
