@@ -1,247 +1,819 @@
--- First, define the enums for business_type and industry if not already created
-CREATE TYPE business_type_enum AS ENUM (
-    'Startup',
-    'Early-stage company',
-    'Small Business',
-    'Established small business',
-    'Enterprise',
-    'Large organization',
-    'Agency',
-    'Service provider',
-    'Freelancer',
-    'Individual consultant',
-    'Other',
-    'Something else'
-);
+-- ENUMS (Preserved from original file)
+DO $$ BEGIN
+    CREATE TYPE business_type_enum AS ENUM (
+        'Startup', 'Early-stage company', 'Small Business', 'Established small business',
+        'Enterprise', 'Large organization', 'Agency', 'Service provider',
+        'Freelancer', 'Individual consultant', 'Other', 'Something else'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE industry_enum AS ENUM (
-    'Technology',
-    'E-commerce',
-    'Healthcare',
-    'Education',
-    'Finance',
-    'Real Estate',
-    'Marketing',
-    'Consulting',
-    'SaaS',
-    'Other'
-);
+DO $$ BEGIN
+    CREATE TYPE industry_enum AS ENUM (
+        'Technology', 'E-commerce', 'Healthcare', 'Education', 'Finance',
+        'Real Estate', 'Marketing', 'Consulting', 'SaaS', 'Other'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- Updated table schema
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_verified BOOLEAN DEFAULT FALSE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    email VARCHAR NOT NULL,
-    password_hash TEXT NOT NULL,
-    name VARCHAR,
-    role VARCHAR,
+-- USER PROVIDED DUMP
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', 'public', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
 
-    -- New Columns
-    company_or_project_name VARCHAR,
-    ai_experience TEXT,
-    botforge_goal TEXT, -- "What do you want BotForge to help you with?"
-    website_domain VARCHAR,
-    chatbot_embed_location TEXT,
-    primary_use_case TEXT,
-    expected_monthly_users INTEGER,
-    business_type business_type_enum,
-    industry industry_enum
-);
+SET default_tablespace = '';
 
+SET default_table_access_method = heap;
 
+--
+-- Name: api_keys; Type: TABLE; Schema: public; Owner: avnadmin
+--
 
-CREATE INDEX idx_users_email ON users(email);
-
--- Subscription plans
-CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) UNIQUE NOT NULL,
-    
-    max_bots INTEGER NOT NULL CHECK (max_bots >= 0),
-    price_per_month NUMERIC(10, 2) CHECK (price_per_month >= 0),
-
-    messages_per_day INTEGER CHECK (messages_per_day >= 0),
-
-    -- Max upload size per file in megabytes
-    max_file_upload_size_mb INTEGER CHECK (max_file_upload_size_mb IN (10, 40)),
-
-    -- Max number of files allowed per bot or interaction
-    max_files_allowed INTEGER CHECK (max_files_allowed >= 0),
-
-    -- Level of customization (1 = basic, 2 = advanced)
-    customizability SMALLINT CHECK (customizability IN (1, 2)),
-
-    -- Optional feature toggles
-    has_priority_support BOOLEAN DEFAULT FALSE,
-    has_api_access BOOLEAN DEFAULT FALSE,
-    has_white_labeling BOOLEAN DEFAULT FALSE,
-    can_use_webhooks BOOLEAN DEFAULT FALSE,
-    max_team_members INTEGER DEFAULT 1 CHECK (max_team_members >= 1),
-
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.api_keys (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    api_key_hash text NOT NULL,
+    name character varying(255),
+    scopes text[],
+    rate_limit integer,
+    expires_at timestamp with time zone,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 
--- User-subscription mapping
-CREATE TABLE user_subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    subscription_id UUID NOT NULL REFERENCES subscriptions(id),
-    start_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    end_date TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN DEFAULT TRUE
+ALTER TABLE public.api_keys OWNER TO avnadmin;
+
+--
+-- Name: background_jobs; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.background_jobs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    job_type character varying(100) NOT NULL,
+    user_id character varying(100),
+    bot_id character varying(100),
+    status character varying(20) DEFAULT 'queued'::character varying NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    result jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone
 );
 
-CREATE INDEX idx_user_subs_user_id ON user_subscriptions(user_id);
-CREATE INDEX idx_user_subs_active ON user_subscriptions(user_id, is_active);
 
--- Bots created by users
-CREATE TABLE bots (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+ALTER TABLE public.background_jobs OWNER TO avnadmin;
+
+--
+-- Name: bot_messages; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.bot_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bot_id uuid NOT NULL,
+    user_id uuid,
+    subscription_id uuid,
+    message text NOT NULL,
+    "timestamp" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    client_id text,
+    query text DEFAULT ''::text NOT NULL,
+    model text,
+    max_tokens integer,
+    temperature numeric(3,2),
+    top_k integer,
+    time_taken_ms integer,
+    session_id character varying
 );
 
-CREATE INDEX idx_bots_user_id ON bots(user_id);
-CREATE INDEX idx_bots_active ON bots(is_active);
 
--- Bot data sources
-CREATE TABLE sources (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('website', 'pdf', 'text', 'sitemap', 'link', 'multiple_links')),
-    url TEXT,
-    file_path TEXT,
-    text_content TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+ALTER TABLE public.bot_messages OWNER TO avnadmin;
+
+--
+-- Name: bot_progress; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.bot_progress (
+    bot_id uuid NOT NULL,
+    step_1_created boolean DEFAULT true,
+    step_2_sources_added boolean DEFAULT false,
+    step_3_config_done boolean DEFAULT false,
+    step_4_tested boolean DEFAULT false,
+    step_5_embedded boolean DEFAULT false
 );
 
-CREATE INDEX idx_sources_bot_id ON sources(bot_id);
 
--- Bot conversation logs
-CREATE TABLE conversations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
-    user_question TEXT NOT NULL,
-    bot_response TEXT,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+ALTER TABLE public.bot_progress OWNER TO avnadmin;
+
+--
+-- Name: bots; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.bots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_conversations_bot_id ON conversations(bot_id);
-CREATE INDEX idx_conversations_timestamp ON conversations(timestamp);
 
--- Bot appearance/config settings
-CREATE TABLE settings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID UNIQUE NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
-    theme JSONB DEFAULT '{}'::jsonb,
-    welcome_message TEXT,
-    enable_smart_actions BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+ALTER TABLE public.bots OWNER TO avnadmin;
+
+--
+-- Name: communications; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.communications (
+    id integer NOT NULL,
+    username text NOT NULL,
+    email text NOT NULL,
+    message text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
 );
 
--- Track progress of onboarding steps
-CREATE TABLE bot_progress (
-    bot_id UUID PRIMARY KEY REFERENCES bots(id) ON DELETE CASCADE,
-    step_1_created BOOLEAN DEFAULT TRUE,
-    step_2_sources_added BOOLEAN DEFAULT FALSE,
-    step_3_config_done BOOLEAN DEFAULT FALSE,
-    step_4_tested BOOLEAN DEFAULT FALSE,
-    step_5_embedded BOOLEAN DEFAULT FALSE
+
+ALTER TABLE public.communications OWNER TO avnadmin;
+
+--
+-- Name: communications_id_seq; Type: SEQUENCE; Schema: public; Owner: avnadmin
+--
+
+CREATE SEQUENCE public.communications_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.communications_id_seq OWNER TO avnadmin;
+
+--
+-- Name: communications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: avnadmin
+--
+
+ALTER SEQUENCE public.communications_id_seq OWNED BY public.communications.id;
+
+
+--
+-- Name: conversations; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.conversations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bot_id uuid NOT NULL,
+    user_question text NOT NULL,
+    bot_response text,
+    "timestamp" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
--- API keys for business users (session-based bot access)
-CREATE TABLE api_keys (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    api_key_hash TEXT NOT NULL,
-    name VARCHAR(100),
-    is_active BOOLEAN DEFAULT TRUE,
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    last_used_at TIMESTAMPTZ
+
+ALTER TABLE public.conversations OWNER TO avnadmin;
+
+--
+-- Name: mcp_executions; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.mcp_executions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bot_id uuid NOT NULL,
+    mcp_server_id uuid NOT NULL,
+    tool_name character varying(255) NOT NULL,
+    input_parameters json,
+    output_result json,
+    execution_time_ms integer,
+    status character varying(50) NOT NULL,
+    error_message text,
+    "timestamp" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
-CREATE INDEX idx_api_keys_hash ON api_keys(api_key_hash);
-CREATE INDEX idx_api_keys_active ON api_keys(is_active);
 
--- Note: bot_sessions are stored in Redis for performance
--- Key format: session:<hashed_token>
--- Value: JSON with session data including context, expiration, etc.
+ALTER TABLE public.mcp_executions OWNER TO avnadmin;
 
--- Optional: Materialized view for analytics (example)
--- CREATE MATERIALIZED VIEW bot_usage_stats AS
--- SELECT bot_id, COUNT(*) AS total_conversations
--- FROM conversations
--- GROUP BY bot_id;
--- You can refresh this view periodically for fast dashboard analytics.
+--
+-- Name: mcp_servers; Type: TABLE; Schema: public; Owner: avnadmin
+--
 
--- MCP SERVERS
-
-CREATE TABLE mcp_servers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    endpoint_url TEXT NOT NULL,
-    api_key TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    timeout_seconds INTEGER DEFAULT 30,
-    retry_attempts INTEGER DEFAULT 3,
-    config JSON DEFAULT '{}'::json,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.mcp_servers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bot_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    endpoint_url text NOT NULL,
+    api_key text,
+    is_active boolean DEFAULT true,
+    timeout_seconds integer DEFAULT 30,
+    retry_attempts integer DEFAULT 3,
+    config json DEFAULT '{}'::json,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_mcp_servers_bot_id ON mcp_servers(bot_id);
-CREATE INDEX idx_mcp_servers_active ON mcp_servers(is_active);
 
--- MCP TOOLS
+ALTER TABLE public.mcp_servers OWNER TO avnadmin;
 
-CREATE TABLE mcp_tools (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mcp_server_id UUID NOT NULL REFERENCES mcp_servers(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    schema JSON NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    usage_count INTEGER DEFAULT 0,
-    last_used TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+--
+-- Name: mcp_tools; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.mcp_tools (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mcp_server_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    schema json NOT NULL,
+    is_active boolean DEFAULT true,
+    usage_count integer DEFAULT 0,
+    last_used timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_mcp_tools_server_id ON mcp_tools(mcp_server_id);
-CREATE INDEX idx_mcp_tools_active ON mcp_tools(is_active);
 
--- MCP EXECUTIONS
+ALTER TABLE public.mcp_tools OWNER TO avnadmin;
 
-CREATE TABLE mcp_executions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
-    mcp_server_id UUID NOT NULL REFERENCES mcp_servers(id) ON DELETE CASCADE,
-    tool_name VARCHAR(255) NOT NULL,
-    input_parameters JSON,
-    output_result JSON,
-    execution_time_ms INTEGER,
-    status VARCHAR(50) NOT NULL,  -- success, error, timeout
-    error_message TEXT,
-    timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+--
+-- Name: settings; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.settings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bot_id uuid NOT NULL,
+    theme jsonb DEFAULT '{}'::jsonb,
+    welcome_message text,
+    enable_smart_actions boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_mcp_exec_bot_id ON mcp_executions(bot_id);
-CREATE INDEX idx_mcp_exec_server_id ON mcp_executions(mcp_server_id);
-CREATE INDEX idx_mcp_exec_status ON mcp_executions(status);
+
+ALTER TABLE public.settings OWNER TO avnadmin;
+
+--
+-- Name: sources; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.sources (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bot_id uuid NOT NULL,
+    type character varying(50) NOT NULL,
+    url text,
+    file_path text,
+    text_content text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT sources_type_check CHECK (((type)::text = ANY ((ARRAY['website'::character varying, 'pdf'::character varying, 'text'::character varying, 'sitemap'::character varying, 'link'::character varying, 'multiple_links'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.sources OWNER TO avnadmin;
+
+--
+-- Name: subscriptions; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.subscriptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name character varying(100) NOT NULL,
+    max_bots integer NOT NULL,
+    price_per_month numeric(10,2),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    messages_per_day integer,
+    max_file_upload_size_mb integer,
+    max_files_allowed integer,
+    customizability smallint,
+    has_priority_support boolean DEFAULT false,
+    has_api_access boolean DEFAULT false,
+    has_white_labeling boolean DEFAULT false,
+    can_use_webhooks boolean DEFAULT false,
+    max_team_members integer DEFAULT 1,
+    CONSTRAINT subscriptions_customizability_check CHECK ((customizability = ANY (ARRAY[1, 2]))),
+    CONSTRAINT subscriptions_max_bots_check CHECK ((max_bots >= 0)),
+    CONSTRAINT subscriptions_max_file_upload_size_mb_check CHECK ((max_file_upload_size_mb = ANY (ARRAY[10, 40]))),
+    CONSTRAINT subscriptions_max_files_allowed_check CHECK ((max_files_allowed >= 0)),
+    CONSTRAINT subscriptions_max_team_members_check CHECK ((max_team_members >= 1)),
+    CONSTRAINT subscriptions_messages_per_day_check CHECK ((messages_per_day >= 0)),
+    CONSTRAINT subscriptions_price_per_month_check CHECK ((price_per_month >= (0)::numeric))
+);
+
+
+ALTER TABLE public.subscriptions OWNER TO avnadmin;
+
+--
+-- Name: user; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public."user" (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email character varying(255) NOT NULL,
+    password_hash text NOT NULL,
+    name character varying(255),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    role character varying(255),
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    is_active boolean DEFAULT true,
+    is_verified boolean DEFAULT false,
+    is_deleted boolean DEFAULT false,
+    company_or_project_name character varying,
+    ai_experience text,
+    botforge_goal text,
+    website_domain character varying,
+    chatbot_embed_location text,
+    primary_use_case text,
+    expected_monthly_users integer,
+    business_type public.business_type_enum,
+    industry public.industry_enum
+);
+
+
+ALTER TABLE public."user" OWNER TO avnadmin;
+
+--
+-- Name: user_subscriptions; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.user_subscriptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    subscription_id uuid NOT NULL,
+    start_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    end_date timestamp with time zone,
+    is_active boolean DEFAULT true
+);
+
+
+ALTER TABLE public.user_subscriptions OWNER TO avnadmin;
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: avnadmin
+--
+
+CREATE TABLE public.users (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    is_active boolean DEFAULT true,
+    is_verified boolean DEFAULT false,
+    is_deleted boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    email character varying NOT NULL,
+    password_hash text NOT NULL,
+    name character varying
+);
+
+
+ALTER TABLE public.users OWNER TO avnadmin;
+
+--
+-- Name: communications id; Type: DEFAULT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.communications ALTER COLUMN id SET DEFAULT nextval('public.communications_id_seq'::regclass);
+
+
+--
+-- Name: api_keys api_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: background_jobs background_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.background_jobs
+    ADD CONSTRAINT background_jobs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: bot_messages bot_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.bot_messages
+    ADD CONSTRAINT bot_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: bot_progress bot_progress_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.bot_progress
+    ADD CONSTRAINT bot_progress_pkey PRIMARY KEY (bot_id);
+
+
+--
+-- Name: bots bots_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.bots
+    ADD CONSTRAINT bots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: communications communications_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.communications
+    ADD CONSTRAINT communications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: conversations conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.conversations
+    ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_executions mcp_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_executions
+    ADD CONSTRAINT mcp_executions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_servers mcp_servers_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_servers
+    ADD CONSTRAINT mcp_servers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_tools mcp_tools_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_tools
+    ADD CONSTRAINT mcp_tools_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: settings settings_bot_id_key; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_bot_id_key UNIQUE (bot_id);
+
+
+--
+-- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sources sources_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.sources
+    ADD CONSTRAINT sources_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: subscriptions subscriptions_name_key; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_name_key UNIQUE (name);
+
+
+--
+-- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: bots unique_bot_name; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.bots
+    ADD CONSTRAINT unique_bot_name UNIQUE (name);
+
+
+--
+-- Name: user_subscriptions user_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.user_subscriptions
+    ADD CONSTRAINT user_subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user users_email_key; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- Name: user users_pkey; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_pkey1; Type: CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey1 PRIMARY KEY (id);
+
+
+--
+-- Name: idx_background_jobs_bot_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_background_jobs_bot_id ON public.background_jobs USING btree (bot_id);
+
+
+--
+-- Name: idx_background_jobs_status; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_background_jobs_status ON public.background_jobs USING btree (status);
+
+
+--
+-- Name: idx_background_jobs_user_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_background_jobs_user_id ON public.background_jobs USING btree (user_id);
+
+
+--
+-- Name: idx_bot_messages_bot_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bot_messages_bot_id ON public.bot_messages USING btree (bot_id);
+
+
+--
+-- Name: idx_bot_messages_session_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bot_messages_session_id ON public.bot_messages USING btree (session_id);
+
+
+--
+-- Name: idx_bot_messages_subscription_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bot_messages_subscription_id ON public.bot_messages USING btree (subscription_id);
+
+
+--
+-- Name: idx_bot_messages_timestamp; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bot_messages_timestamp ON public.bot_messages USING btree ("timestamp");
+
+
+--
+-- Name: idx_bot_messages_user_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bot_messages_user_id ON public.bot_messages USING btree (user_id);
+
+
+--
+-- Name: idx_bots_active; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bots_active ON public.bots USING btree (is_active);
+
+
+--
+-- Name: idx_bots_user_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_bots_user_id ON public.bots USING btree (user_id);
+
+
+--
+-- Name: idx_conversations_bot_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_conversations_bot_id ON public.conversations USING btree (bot_id);
+
+
+--
+-- Name: idx_conversations_timestamp; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_conversations_timestamp ON public.conversations USING btree ("timestamp");
+
+
+--
+-- Name: idx_mcp_exec_bot_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_exec_bot_id ON public.mcp_executions USING btree (bot_id);
+
+
+--
+-- Name: idx_mcp_exec_server_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_exec_server_id ON public.mcp_executions USING btree (mcp_server_id);
+
+
+--
+-- Name: idx_mcp_exec_status; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_exec_status ON public.mcp_executions USING btree (status);
+
+
+--
+-- Name: idx_mcp_servers_active; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_servers_active ON public.mcp_servers USING btree (is_active);
+
+
+--
+-- Name: idx_mcp_servers_bot_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_servers_bot_id ON public.mcp_servers USING btree (bot_id);
+
+
+--
+-- Name: idx_mcp_servers_created_at; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_servers_created_at ON public.mcp_servers USING btree (created_at);
+
+
+--
+-- Name: idx_mcp_servers_is_active; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_servers_is_active ON public.mcp_servers USING btree (is_active);
+
+
+--
+-- Name: idx_mcp_tools_active; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_tools_active ON public.mcp_tools USING btree (is_active);
+
+
+--
+-- Name: idx_mcp_tools_server_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_mcp_tools_server_id ON public.mcp_tools USING btree (mcp_server_id);
+
+
+--
+-- Name: idx_sources_bot_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_sources_bot_id ON public.sources USING btree (bot_id);
+
+
+--
+-- Name: idx_user_subs_active; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_user_subs_active ON public.user_subscriptions USING btree (user_id, is_active);
+
+
+--
+-- Name: idx_user_subs_user_id; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_user_subs_user_id ON public.user_subscriptions USING btree (user_id);
+
+
+--
+-- Name: idx_users_email; Type: INDEX; Schema: public; Owner: avnadmin
+--
+
+CREATE INDEX idx_users_email ON public."user" USING btree (email);
+
+
+--
+-- Name: api_keys api_keys_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT api_keys_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bot_progress bot_progress_bot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.bot_progress
+    ADD CONSTRAINT bot_progress_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES public.bots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bots bots_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.bots
+    ADD CONSTRAINT bots_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: conversations conversations_bot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.conversations
+    ADD CONSTRAINT conversations_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES public.bots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_executions mcp_executions_bot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_executions
+    ADD CONSTRAINT mcp_executions_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES public.bots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_executions mcp_executions_mcp_server_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_executions
+    ADD CONSTRAINT mcp_executions_mcp_server_id_fkey FOREIGN KEY (mcp_server_id) REFERENCES public.mcp_servers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_servers mcp_servers_bot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_servers
+    ADD CONSTRAINT mcp_servers_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES public.bots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_tools mcp_tools_mcp_server_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.mcp_tools
+    ADD CONSTRAINT mcp_tools_mcp_server_id_fkey FOREIGN KEY (mcp_server_id) REFERENCES public.mcp_servers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: settings settings_bot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES public.bots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sources sources_bot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.sources
+    ADD CONSTRAINT sources_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES public.bots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_subscriptions user_subscriptions_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.user_subscriptions
+    ADD CONSTRAINT user_subscriptions_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id);
+
+
+--
+-- Name: user_subscriptions user_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: avnadmin
+--
+
+ALTER TABLE ONLY public.user_subscriptions
+    ADD CONSTRAINT user_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE;
+
+-- INITIAL DATA
 
 -- Starter Plan
-INSERT INTO subscriptions (
+INSERT INTO public.subscriptions (
     id, name, max_bots, price_per_month, created_at,
     messages_per_day, max_file_upload_size_mb, max_files_allowed,
     customizability, has_priority_support, has_api_access,
@@ -251,10 +823,10 @@ INSERT INTO subscriptions (
     100, 10, 2,
     1, FALSE, FALSE,
     FALSE, FALSE, 1
-);
+) ON CONFLICT (name) DO NOTHING;
 
 -- Pro Plan
-INSERT INTO subscriptions (
+INSERT INTO public.subscriptions (
     id, name, max_bots, price_per_month, created_at,
     messages_per_day, max_file_upload_size_mb, max_files_allowed,
     customizability, has_priority_support, has_api_access,
@@ -264,10 +836,10 @@ INSERT INTO subscriptions (
     1000, 40, 5,
     2, TRUE, TRUE,
     FALSE, TRUE, 5
-);
+) ON CONFLICT (name) DO NOTHING;
 
 -- Enterprise Plan
-INSERT INTO subscriptions (
+INSERT INTO public.subscriptions (
     id, name, max_bots, price_per_month, created_at,
     messages_per_day, max_file_upload_size_mb, max_files_allowed,
     customizability, has_priority_support, has_api_access,
@@ -277,21 +849,4 @@ INSERT INTO subscriptions (
     10000, 40, 10,
     2, TRUE, TRUE,
     TRUE, TRUE, 20
-);
-
-CREATE TABLE bot_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID NOT NULL,
-    client_id TEXT,  -- e.g., "web-client"
-    user_id UUID,    -- optional: if tracking user-wise
-    subscription_id UUID, -- optional: link to plan
-    session_id VARCHAR, -- session identifier
-    query TEXT NOT NULL,  -- the input sent by user
-    message TEXT NOT NULL, -- the response from bot
-    model TEXT,  -- e.g., "gpt-3.5-turbo"
-    max_tokens INT,
-    temperature NUMERIC(3,2),  -- e.g., 0.7
-    top_k INT,
-    time_taken_ms INT, -- total time taken in milliseconds
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+) ON CONFLICT (name) DO NOTHING;
