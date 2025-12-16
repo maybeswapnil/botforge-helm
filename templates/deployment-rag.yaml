@@ -39,7 +39,7 @@ spec:
                   key: redis-password
             - name: DATABASE_URL
               value: "postgresql://{{ .Values.postgres.env.POSTGRES_USER }}:$(POSTGRES_PASSWORD)@{{ include "botforge.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.env.POSTGRES_DB }}"
-            - name: REDIS_URL
+            - name: REDIS_URI
               value: "redis://:$(REDIS_PASSWORD)@{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}/0"
             {{- range $key, $val := .Values.rag.env }}
             - name: {{ $key }}
