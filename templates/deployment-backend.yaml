@@ -103,4 +103,5 @@ spec:
           secret:
             secretName: {{ include "botforge.fullname" . }}-keys
         - name: uploads-volume
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: {{ include "botforge.fullname" . }}-uploads

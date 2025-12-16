@@ -9,6 +9,9 @@ backend:
     type: NodePort
     port: 8080
     nodePort: 30080
+  persistence:
+    size: 5Gi
+    storageClass: ""
   env:
     GO_ENV: "production"
   config:
