@@ -18,6 +18,21 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         component: rag
     spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z -v -w 1 {{ include "botforge.fullname" . }}-postgres {{ .Values.postgres.service.port }}; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+              until nc -z -v -w 1 {{ include "botforge.fullname" . }}-redis {{ .Values.redis.service.port }}; do
+                echo "Waiting for redis..."
+                sleep 2
+              done
       containers:
         - name: rag
           image: "{{ .Values.rag.image.repository }}:{{ .Values.rag.image.tag }}"
@@ -38,7 +53,7 @@ spec:
                   name: {{ include "botforge.fullname" . }}-secrets
                   key: redis-password
             - name: DATABASE_URL
-              value: "postgresql://{{ .Values.postgres.env.POSTGRES_USER }}:$(POSTGRES_PASSWORD)@{{ include "botforge.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.env.POSTGRES_DB }}"
+              value: "postgresql://{{ .Values.postgres.env.POSTGRES_USER }}:$(POSTGRES_PASSWORD)@{{ include "botforge.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.env.POSTGRES_DB }}?sslmode=require"
             - name: REDIS_URI
               value: "redis://:$(REDIS_PASSWORD)@{{ include "botforge.fullname" . }}-redis:{{ .Values.redis.service.port }}/0"
             {{- range $key, $val := .Values.rag.env }}
